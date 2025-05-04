@@ -7,6 +7,13 @@ function App() {
   const [artists, setArtists] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [timeRange, setTimeRange] = useState('medium_term');
+
+  const TIME_RANGES = [
+    { value: 'short_term', label: 'Last 4 Weeks' },
+    { value: 'medium_term', label: 'Last 6 Months' },
+    { value: 'long_term', label: 'All Time' }
+  ];
 
   useEffect(() => {
     // Check for access token in URL after Spotify redirects
@@ -22,7 +29,7 @@ function App() {
   const fetchArtists = async () => {
     try {
       setIsLoading(true);
-      const data = await getTopArtists();
+      const data = await getTopArtists(timeRange);
       setArtists(data.items);
       setError(null);
     } catch (err) {
@@ -36,14 +43,19 @@ function App() {
     window.location.href = getAuthUrl();
   };
 
+  const handleTimeRangeChange = (e) => {
+    setTimeRange(e.target.value);
+    fetchArtists();
+  };
+
   if (!localStorage.getItem('spotify_access_token')) {
     return (
       <div className="App">
         <header className="App-header">
           <h1>TopTrax</h1>
-          <p>Your top Spotify artists and tracks</p>
+          <p>Visualize your favorite artists and tracks</p>
           <button className="login-button" onClick={handleLogin}>
-            Login with Spotify
+            Connect with Spotify
           </button>
         </header>
       </div>
@@ -54,15 +66,36 @@ function App() {
     <div className="App">
       <header className="App-header">
         <h1>TopTrax</h1>
-        <p>Your top Spotify artists</p>
+        <p>Your favorite artists</p>
+        <select 
+          className="time-range-selector"
+          value={timeRange}
+          onChange={handleTimeRangeChange}
+        >
+          {TIME_RANGES.map(range => (
+            <option key={range.value} value={range.value}>
+              {range.label}
+            </option>
+          ))}
+        </select>
       </header>
       <main>
-        {isLoading && <div>Loading...</div>}
-        {error && <div>Error: {error}</div>}
+        {error && (
+          <div className="error-message">
+            {error}
+          </div>
+        )}
         <div className="artist-grid">
-          {artists.map((artist) => (
-            <ArtistCard key={artist.id} artist={artist} />
-          ))}
+          {isLoading ? (
+            <div className="loading-container">
+              <div className="loading-spinner"></div>
+              <p>Loading your top artists...</p>
+            </div>
+          ) : (
+            artists.map((artist) => (
+              <ArtistCard key={artist.id} artist={artist} />
+            ))
+          )}
         </div>
       </main>
     </div>
