@@ -1,10 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
-import { getAuthUrl, getTopArtists } from './services/spotify';
+import { 
+  getAuthUrl, 
+  getTopArtists,
+  getTopTracks,
+  handleSpotifyAuth,
+  isTokenExpired
+} from './services/spotify';
 import ArtistCard from './components/ArtistCard';
+import TrackCard from './components/TrackCard';
 
 function App() {
   const [artists, setArtists] = useState([]);
+  const [tracks, setTracks] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [timeRange, setTimeRange] = useState('medium_term');
@@ -15,16 +23,23 @@ function App() {
     { value: 'long_term', label: 'All Time' }
   ];
 
+  // Handle initial authentication
   useEffect(() => {
-    // Check for access token in URL after Spotify redirects
+    // Check if we have a token in the URL hash
     const hash = window.location.hash;
     if (hash) {
-      const token = hash.substring(1).split('&')[0].split('=')[1];
-      localStorage.setItem('spotify_access_token', token);
-      window.history.pushState("", document.title, window.location.pathname);
-      fetchArtists();
+      const authSuccess = handleSpotifyAuth(hash);
+      if (authSuccess) {
+        fetchArtists();
+        fetchTracks();
+      }
     }
-  }, []);
+
+    // Check if token is expired
+    if (isTokenExpired()) {
+      setError('Your session has expired. Please reconnect with Spotify.');
+    }
+  }, []); // Empty dependency array means this runs once on mount
 
   const fetchArtists = async () => {
     try {
@@ -34,6 +49,29 @@ function App() {
       setError(null);
     } catch (err) {
       setError(err.message);
+      // If token expired, remove it from storage
+      if (err.message === 'Token has expired') {
+        localStorage.removeItem('spotify_access_token');
+        localStorage.removeItem('spotify_token_expires_at');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchTracks = async () => {
+    try {
+      setIsLoading(true);
+      const data = await getTopTracks(timeRange);
+      setTracks(data.items);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+      // If token expired, remove it from storage
+      if (err.message === 'Token has expired') {
+        localStorage.removeItem('spotify_access_token');
+        localStorage.removeItem('spotify_token_expires_at');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -46,6 +84,7 @@ function App() {
   const handleTimeRangeChange = (e) => {
     setTimeRange(e.target.value);
     fetchArtists();
+    fetchTracks();
   };
 
   if (!localStorage.getItem('spotify_access_token')) {
@@ -66,7 +105,7 @@ function App() {
     <div className="App">
       <header className="App-header">
         <h1>TopTrax</h1>
-        <p>Your favorite artists</p>
+        <p>Your favorite music</p>
         <select 
           className="time-range-selector"
           value={timeRange}
@@ -85,17 +124,35 @@ function App() {
             {error}
           </div>
         )}
-        <div className="artist-grid">
-          {isLoading ? (
-            <div className="loading-container">
-              <div className="loading-spinner"></div>
-              <p>Loading your top artists...</p>
-            </div>
-          ) : (
-            artists.map((artist) => (
-              <ArtistCard key={artist.id} artist={artist} />
-            ))
-          )}
+        <div className="content-section">
+          <h2>Top Artists</h2>
+          <div className="artist-grid">
+            {isLoading ? (
+              <div className="loading-container">
+                <div className="loading-spinner"></div>
+                <p>Loading your top artists...</p>
+              </div>
+            ) : (
+              artists.map((artist) => (
+                <ArtistCard key={artist.id} artist={artist} />
+              ))
+            )}
+          </div>
+        </div>
+        <div className="content-section">
+          <h2>Top Tracks</h2>
+          <div className="track-grid">
+            {isLoading ? (
+              <div className="loading-container">
+                <div className="loading-spinner"></div>
+                <p>Loading your top tracks...</p>
+              </div>
+            ) : (
+              tracks.map((track) => (
+                <TrackCard key={track.id} track={track} />
+              ))
+            )}
+          </div>
         </div>
       </main>
     </div>

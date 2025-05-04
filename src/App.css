@@ -110,11 +110,31 @@ body {
   color: rgba(255, 0, 0, 0.9);
 }
 
+.content-section {
+  margin: 4rem 0;
+  padding: 0 2rem;
+}
+
+.content-section h2 {
+  color: var(--text);
+  margin-bottom: 2rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
 .artist-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 2rem;
-  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.track-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 2rem;
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;
